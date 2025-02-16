@@ -2,11 +2,13 @@
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP25.P02.Api.Data;
 using Selu383.SP25.P02.Api.Features.Theaters;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Selu383.SP25.P02.Api.Controllers
 {
     [Route("api/theaters")]
     [ApiController]
+    [Authorize] // Require authentication for all actions
     public class TheatersController : ControllerBase
     {
         private readonly DbSet<Theater> theaters;
@@ -18,12 +20,14 @@ namespace Selu383.SP25.P02.Api.Controllers
             theaters = dataContext.Set<Theater>();
         }
 
+        // Open to all authenticated users (both "User" & "Admin")
         [HttpGet]
         public IQueryable<TheaterDto> GetAllTheaters()
         {
             return GetTheaterDtos(theaters);
         }
 
+        // Open to all authenticated users (both "User" & "Admin")
         [HttpGet]
         [Route("{id}")]
         public ActionResult<TheaterDto> GetTheaterById(int id)
@@ -37,7 +41,9 @@ namespace Selu383.SP25.P02.Api.Controllers
             return Ok(result);
         }
 
+        // Only "Admin" can create a theater
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public ActionResult<TheaterDto> CreateTheater(TheaterDto dto)
         {
             if (IsInvalid(dto))
@@ -60,8 +66,10 @@ namespace Selu383.SP25.P02.Api.Controllers
             return CreatedAtAction(nameof(GetTheaterById), new { id = dto.Id }, dto);
         }
 
+        // Only "Admin" can update a theater
         [HttpPut]
         [Route("{id}")]
+        [Authorize(Roles = "Admin")]
         public ActionResult<TheaterDto> UpdateTheater(int id, TheaterDto dto)
         {
             if (IsInvalid(dto))
@@ -86,8 +94,10 @@ namespace Selu383.SP25.P02.Api.Controllers
             return Ok(dto);
         }
 
+        // Only "Admin" can delete a theater
         [HttpDelete]
         [Route("{id}")]
+        [Authorize(Roles = "Admin")]
         public ActionResult DeleteTheater(int id)
         {
             var theater = theaters.FirstOrDefault(x => x.Id == id);
