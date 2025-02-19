@@ -6,6 +6,5 @@
         public required string Name { get; set; }
         public required string Address { get; set; }
         public int SeatCount { get; set; }
-        public User Manager { get; set; }
     }
 }
