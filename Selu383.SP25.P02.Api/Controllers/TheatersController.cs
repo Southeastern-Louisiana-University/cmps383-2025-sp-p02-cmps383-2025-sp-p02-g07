@@ -9,7 +9,7 @@ namespace Selu383.SP25.P02.Api.Controllers
 {
     [Route("api/theaters")]
     [ApiController]
-    [Authorize] // Require authentication for all actions
+    //[Authorize] // Require authentication for all actions
     public class TheatersController : ControllerBase
     {
         private readonly DbSet<Theater> theaters;
