@@ -77,6 +77,23 @@ namespace Selu383.SP25.P02.Api
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseRouting().
+                UseEndpoints(endpoints =>
+                {
+                    endpoints.MapControllers();
+                });
+            app.UseStaticFiles();
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSpa(x =>
+                {
+                    x.UseProxyToSpaDevelopmentServer("http://localhost:5173");
+                });
+            }
+            else
+            {
+                app.MapFallbackToFile("/index.html");
+            }
             app.MapControllers();
 
             app.Run();
