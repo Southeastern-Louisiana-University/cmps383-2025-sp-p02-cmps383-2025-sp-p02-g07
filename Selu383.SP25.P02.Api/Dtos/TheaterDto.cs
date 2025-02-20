@@ -10,6 +10,7 @@ namespace Selu383.SP25.P02.Api.Dtos
         public string Name { get; set; }
         [Required]
         public string Address { get; set; }
+        public int SeatCount { get; set; }
         public int ? ManagerId { get; set; }
     }
 
@@ -21,7 +22,7 @@ namespace Selu383.SP25.P02.Api.Dtos
 
         [Required]
         public string Address { get; set; }
-
+        public int SeatCount { get; set; }
         public int? ManagerId { get; set; } 
     }
 
@@ -33,7 +34,7 @@ namespace Selu383.SP25.P02.Api.Dtos
 
         [Required]
         public string Address { get; set; }
-
+        public int SeatCount { get; set; }
         public int? ManagerId { get; set; } 
     }
 }

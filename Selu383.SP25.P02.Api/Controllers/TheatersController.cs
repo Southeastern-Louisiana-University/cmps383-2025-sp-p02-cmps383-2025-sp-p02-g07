@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP25.P02.Api.Data;
 using Selu383.SP25.P02.Api.Features.Theaters;
+using Selu383.SP25.P02.Api.Dtos;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Selu383.SP25.P02.Api.Controllers

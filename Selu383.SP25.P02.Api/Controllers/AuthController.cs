@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Selu383.SP25.P02.Api.Dtos;
 using System.Threading.Tasks;
 
 namespace Selu383.SP25.P02.Api.Controllers

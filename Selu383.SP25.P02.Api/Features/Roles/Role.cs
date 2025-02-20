@@ -8,6 +8,6 @@ namespace Selu383.SP25.P02.Api.Features.Roles
 {
     public class Role : IdentityRole<int>
     {
-        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public ICollection<UserRole> Roles { get; set; } = new List<UserRole>();
     }
 }
