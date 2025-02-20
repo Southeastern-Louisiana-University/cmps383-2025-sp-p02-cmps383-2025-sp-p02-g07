@@ -31,7 +31,7 @@ namespace Selu383.SP25.P02.Api.Data
 
             builder.Entity<UserRole>()
                 .HasOne(ur => ur.Role)
-                .WithMany(r => r.UserRoles)
+                .WithMany(r => r.Roles)
                 .HasForeignKey(ur => ur.RoleId)
                 .IsRequired();
         }
