@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Selu383.SP25.P02.Api.Data;
 using Selu383.SP25.P02.Api.Features.Users;
 using Selu383.SP25.P02.Api.Features.Roles;
+using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Builder;
 
 namespace Selu383.SP25.P02.Api
 {
@@ -15,21 +17,19 @@ namespace Selu383.SP25.P02.Api
 
             // Add DbContext
             builder.Services.AddDbContext<DataContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DataContext") 
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DataContext")
                 ?? throw new InvalidOperationException("Connection string 'DataContext' not found.")));
 
             // Configure Identity
             builder.Services.AddIdentity<User, Role>(options =>
-                {
-                    options.Password.RequireDigit = true;
-                    options.Password.RequiredLength = 6;
-                    options.Password.RequireNonAlphanumeric = false;
-                    options.Password.RequireUppercase = true;
-                    options.Password.RequireLowercase = true;
-                    options.User.RequireUniqueEmail = false; // Allow same emails, but unique usernames
-                })
-                .AddEntityFrameworkStores<DataContext>()
-                .AddDefaultTokenProviders();
+            {
+                options.User.RequireUniqueEmail = false;
+            })
+             .AddEntityFrameworkStores<DataContext>()
+             .AddDefaultTokenProviders();
+            builder.Services.AddScoped<RoleManager<Role>>();
+
+            builder.Services.AddAuthorization();
 
             // Configure Cookie Authentication
             builder.Services.ConfigureApplicationCookie(options =>
@@ -57,6 +57,23 @@ namespace Selu383.SP25.P02.Api
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie();
 
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
+            });
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    policy =>
+                    {
+                        policy.AllowAnyOrigin()  // Or specify specific origins with .WithOrigins("http://localhost:5173")
+                              .AllowAnyMethod()
+                              .AllowAnyHeader();
+                    });
+            });
+
+
+
             builder.Services.AddAuthorization();
 
             builder.Services.AddControllers();
@@ -66,20 +83,50 @@ namespace Selu383.SP25.P02.Api
 
             using (var scope = app.Services.CreateScope())
             {
-                SeedTheaters.Initialize(scope.ServiceProvider);
+                await SeedTheaters.Initialize(scope.ServiceProvider);
             }
 
             if (app.Environment.IsDevelopment())
             {
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
+                    c.RoutePrefix = string.Empty;  // Makes Swagger UI available at the root
+                });
                 app.MapOpenApi();
+
+
+
+                app.UseHttpsRedirection();
+                app.UseAuthentication();
+                app.UseRouting();
+
+                app.UseCors("AllowAll");
+
+                app.UseAuthorization();  // <-- Authorization should come after Authentication
+
+                app.UseEndpoints(endpoints =>
+                {
+                    endpoints.MapControllers();
+                });
+
+                app.UseStaticFiles();
+                if (app.Environment.IsDevelopment())
+                {
+                    app.UseSpa(x =>
+                    {
+                        x.UseProxyToSpaDevelopmentServer("http://localhost:5173");
+                    });
+                }
+                else
+                {
+                    app.MapFallbackToFile("/index.html");
+                }
+                app.MapControllers();
+
+                app.Run();
             }
-
-            app.UseHttpsRedirection();
-            app.UseAuthentication();
-            app.UseAuthorization();
-            app.MapControllers();
-
-            app.Run();
         }
     }
 }

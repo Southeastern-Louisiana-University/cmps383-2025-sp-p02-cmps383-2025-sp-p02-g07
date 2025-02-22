@@ -17,6 +17,8 @@ namespace Selu383.SP25.P02.Api.Data
         }
 
         public DbSet<Theater> Theaters { get; set; }
+        public DbSet <UserRole> UserRoles {  get; set; }
+        public DbSet <User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -31,7 +33,7 @@ namespace Selu383.SP25.P02.Api.Data
 
             builder.Entity<UserRole>()
                 .HasOne(ur => ur.Role)
-                .WithMany(r => r.UserRoles)
+                .WithMany(r => r.Roles)
                 .HasForeignKey(ur => ur.RoleId)
                 .IsRequired();
         }

@@ -12,7 +12,7 @@ namespace Selu383.SP25.P02.Api.Data
 {
     public static class SeedTheaters
     {
-        public static async void Initialize(IServiceProvider serviceProvider)
+        public static async Task Initialize(IServiceProvider serviceProvider)
         {
             using (var scope = serviceProvider.CreateScope())
             {
@@ -32,7 +32,7 @@ namespace Selu383.SP25.P02.Api.Data
                     }
                 }
 
-                // ✅ Seed Users
+                // ✅ Seed Users (After ensuring roles are created)
                 await CreateUser(userManager, "galkadi", "Password123!", "Admin");
                 await CreateUser(userManager, "bob", "Password123!", "User");
                 await CreateUser(userManager, "sue", "Password123!", "User");
@@ -70,6 +70,8 @@ namespace Selu383.SP25.P02.Api.Data
                 }
             }
         }
+
+        
 
         private static async Task CreateUser(UserManager<User> userManager, string username, string password, string role)
         {
