@@ -12,7 +12,7 @@ using Selu383.SP25.P02.Api.Data;
 namespace Selu383.SP25.P02.Api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20250220024957_Initial")]
+    [Migration("20250222165449_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -155,6 +155,9 @@ namespace Selu383.SP25.P02.Api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -164,6 +167,8 @@ namespace Selu383.SP25.P02.Api.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ManagerId");
 
                     b.ToTable("Theaters");
                 });
@@ -287,10 +292,19 @@ namespace Selu383.SP25.P02.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Selu383.SP25.P02.Api.Features.Theaters.Theater", b =>
+                {
+                    b.HasOne("Selu383.SP25.P02.Api.Features.Users.User", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerId");
+
+                    b.Navigation("Manager");
+                });
+
             modelBuilder.Entity("Selu383.SP25.P02.Api.Features.UserRoles.UserRole", b =>
                 {
                     b.HasOne("Selu383.SP25.P02.Api.Features.Roles.Role", "Role")
-                        .WithMany("UserRoles")
+                        .WithMany("Roles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -308,7 +322,7 @@ namespace Selu383.SP25.P02.Api.Migrations
 
             modelBuilder.Entity("Selu383.SP25.P02.Api.Features.Roles.Role", b =>
                 {
-                    b.Navigation("UserRoles");
+                    b.Navigation("Roles");
                 });
 
             modelBuilder.Entity("Selu383.SP25.P02.Api.Features.Users.User", b =>

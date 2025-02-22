@@ -2,13 +2,14 @@
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP25.P02.Api.Data;
 using Selu383.SP25.P02.Api.Features.Theaters;
+using Selu383.SP25.P02.Api.Dtos;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Selu383.SP25.P02.Api.Controllers
 {
     [Route("api/theaters")]
     [ApiController]
-    [Authorize] // Require authentication for all actions
+    //[Authorize] // Require authentication for all actions
     public class TheatersController : ControllerBase
     {
         private readonly DbSet<Theater> theaters;
