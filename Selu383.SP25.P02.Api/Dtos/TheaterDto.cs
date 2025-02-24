@@ -11,7 +11,7 @@ namespace Selu383.SP25.P02.Api.Dtos
         [Required]
         public string Address { get; set; }
         public int SeatCount { get; set; }
-        public int ? ManagerId { get; set; }
+        public int? ManagerId { get; set; }
     }
 
     public class CreateTheaterDto

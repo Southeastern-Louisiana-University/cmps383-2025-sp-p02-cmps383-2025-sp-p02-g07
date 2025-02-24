@@ -45,11 +45,23 @@ namespace Selu383.SP25.P02.Api.Controllers
         // Only "Admin" can create a theater
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public ActionResult<TheaterDto> CreateTheater(TheaterDto dto)
+        public async Task<ActionResult<TheaterDto>> CreateTheaterAsync(TheaterDto dto)
         {
             if (IsInvalid(dto))
             {
                 return BadRequest();
+            }
+
+            if (!User.IsInRole("Admin"))
+            {
+                return Forbid(); // Returns a 403 Forbidden
+            }
+
+
+            var manager = await dataContext.Users.FindAsync(dto.ManagerId.GetValueOrDefault());
+            if (manager == null)
+            {
+                return NotFound();
             }
 
             var theater = new Theater
@@ -57,10 +69,12 @@ namespace Selu383.SP25.P02.Api.Controllers
                 Name = dto.Name,
                 Address = dto.Address,
                 SeatCount = dto.SeatCount,
+                Manager = manager
+                
             };
             theaters.Add(theater);
 
-            dataContext.SaveChanges();
+            await dataContext.SaveChangesAsync();
 
             dto.Id = theater.Id;
 
@@ -78,6 +92,11 @@ namespace Selu383.SP25.P02.Api.Controllers
                 return BadRequest();
             }
 
+            if (!User.IsInRole("Admin"))
+            {
+                return Forbid(); // Returns a 403 Forbidden
+            }
+
             var theater = theaters.FirstOrDefault(x => x.Id == id);
             if (theater == null)
             {
@@ -87,7 +106,6 @@ namespace Selu383.SP25.P02.Api.Controllers
             theater.Name = dto.Name;
             theater.Address = dto.Address;
             theater.SeatCount = dto.SeatCount;
-
             dataContext.SaveChanges();
 
             dto.Id = theater.Id;
@@ -101,6 +119,12 @@ namespace Selu383.SP25.P02.Api.Controllers
         [Authorize(Roles = "Admin")]
         public ActionResult DeleteTheater(int id)
         {
+
+            if (!User.IsInRole("Admin"))
+            {
+                return Forbid(); // Returns a 403 Forbidden
+            }
+
             var theater = theaters.FirstOrDefault(x => x.Id == id);
             if (theater == null)
             {
@@ -131,6 +155,7 @@ namespace Selu383.SP25.P02.Api.Controllers
                     Name = x.Name,
                     Address = x.Address,
                     SeatCount = x.SeatCount,
+                    ManagerId = x.ManagerId,
                 });
         }
     }
