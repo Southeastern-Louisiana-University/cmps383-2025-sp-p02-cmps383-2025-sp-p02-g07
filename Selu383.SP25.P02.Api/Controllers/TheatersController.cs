@@ -4,12 +4,12 @@ using Selu383.SP25.P02.Api.Data;
 using Selu383.SP25.P02.Api.Features.Theaters;
 using Selu383.SP25.P02.Api.Dtos;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Selu383.SP25.P02.Api.Controllers
 {
     [Route("api/theaters")]
     [ApiController]
-    //[Authorize] // Require authentication for all actions
     public class TheatersController : ControllerBase
     {
         private readonly DbSet<Theater> theaters;
@@ -21,14 +21,12 @@ namespace Selu383.SP25.P02.Api.Controllers
             theaters = dataContext.Set<Theater>();
         }
 
-        // Open to all authenticated users (both "User" & "Admin")
         [HttpGet]
         public IQueryable<TheaterDto> GetAllTheaters()
         {
             return GetTheaterDtos(theaters);
         }
 
-        // Open to all authenticated users (both "User" & "Admin")
         [HttpGet]
         [Route("{id}")]
         public ActionResult<TheaterDto> GetTheaterById(int id)
@@ -42,7 +40,6 @@ namespace Selu383.SP25.P02.Api.Controllers
             return Ok(result);
         }
 
-        // Only "Admin" can create a theater
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<TheaterDto>> CreateTheaterAsync(TheaterDto dto)
@@ -50,11 +47,6 @@ namespace Selu383.SP25.P02.Api.Controllers
             if (IsInvalid(dto))
             {
                 return BadRequest(new { message = "Invalid theater data." });
-            }
-
-            if (!User.IsInRole("Admin"))
-            {
-                return Forbid(); // Returns a 403 Forbidden
             }
 
             var manager = dto.ManagerId.HasValue
@@ -84,40 +76,61 @@ namespace Selu383.SP25.P02.Api.Controllers
             return CreatedAtAction(nameof(GetTheaterById), new { id = theater.Id }, createdTheater);
         }
 
-
-        // Only "Admin" can update a theater
         [HttpPut]
         [Route("{id}")]
-        [Authorize(Roles = "Admin")]
-        public ActionResult<TheaterDto> UpdateTheater(int id, TheaterDto dto)
+        [Authorize]
+        public async Task<ActionResult<TheaterDto>> UpdateTheater(int id, TheaterDto dto)
         {
             if (IsInvalid(dto))
             {
                 return BadRequest();
             }
 
-            if (!User.IsInRole("Admin"))
-            {
-                return Forbid(); // Returns a 403 Forbidden
-            }
-
-            var theater = theaters.FirstOrDefault(x => x.Id == id);
+            var theater = await theaters.Include(t => t.Manager).FirstOrDefaultAsync(x => x.Id == id);
             if (theater == null)
             {
                 return NotFound();
             }
 
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!User.IsInRole("Admin") && (theater.Manager == null || theater.Manager.Id.ToString() != userId))
+            {
+                return Forbid();
+            }
+
             theater.Name = dto.Name;
             theater.Address = dto.Address;
             theater.SeatCount = dto.SeatCount;
-            dataContext.SaveChanges();
 
-            dto.Id = theater.Id;
+            if (dto.ManagerId.HasValue)
+            {
+                var manager = await dataContext.Users.FindAsync(dto.ManagerId.Value);
+                if (manager == null)
+                {
+                    return BadRequest(new { message = "Invalid ManagerId." });
+                }
+                theater.Manager = manager;
+            }
+            else
+            {
+                theater.Manager = null;
+            }
 
-            return Ok(dto);
+            await dataContext.SaveChangesAsync();
+
+            var updatedDto = new TheaterDto
+            {
+                Id = theater.Id,
+                Name = theater.Name,
+                Address = theater.Address,
+                SeatCount = theater.SeatCount,
+                ManagerId = theater.ManagerId
+            };
+
+            return Ok(updatedDto);
         }
 
-        // Only "Admin" can delete a theater
         [HttpDelete]
         [Route("{id}")]
         [Authorize(Roles = "Admin")]
@@ -125,23 +138,20 @@ namespace Selu383.SP25.P02.Api.Controllers
         {
             if (!User.IsInRole("Admin"))
             {
-                return Forbid(); // Returns a 403 Forbidden
+                return Forbid();
             }
 
             var theater = theaters.FirstOrDefault(x => x.Id == id);
             if (theater == null)
             {
-                return NotFound(new { message = "No such item exists." }); // NoSuchItem case
+                return NotFound(new { message = "No such item exists." });
             }
 
             theaters.Remove(theater);
             dataContext.SaveChanges();
 
-            return Ok(new { message = "Theater successfully deleted.", id = id }); // ValidItem case
+            return Ok(new { message = "Theater successfully deleted.", id = id });
         }
-
-
-
 
         private static bool IsInvalid(TheaterDto dto)
         {
