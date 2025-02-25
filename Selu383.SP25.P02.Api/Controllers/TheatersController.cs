@@ -2,6 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP25.P02.Api.Data;
 using Selu383.SP25.P02.Api.Features.Theaters;
+using Selu383.SP25.P02.Api.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Selu383.SP25.P02.Api.Controllers
 {
@@ -38,69 +41,116 @@ namespace Selu383.SP25.P02.Api.Controllers
         }
 
         [HttpPost]
-        public ActionResult<TheaterDto> CreateTheater(TheaterDto dto)
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<TheaterDto>> CreateTheaterAsync(TheaterDto dto)
         {
             if (IsInvalid(dto))
             {
-                return BadRequest();
+                return BadRequest(new { message = "Invalid theater data." });
             }
+
+            var manager = dto.ManagerId.HasValue
+                ? await dataContext.Users.FindAsync(dto.ManagerId.Value)
+                : null;
 
             var theater = new Theater
             {
                 Name = dto.Name,
                 Address = dto.Address,
                 SeatCount = dto.SeatCount,
+                Manager = manager
             };
+
             theaters.Add(theater);
+            await dataContext.SaveChangesAsync();
 
-            dataContext.SaveChanges();
+            var createdTheater = new TheaterDto
+            {
+                Id = theater.Id,
+                Name = theater.Name,
+                Address = theater.Address,
+                SeatCount = theater.SeatCount,
+                ManagerId = dto.ManagerId
+            };
 
-            dto.Id = theater.Id;
-
-            return CreatedAtAction(nameof(GetTheaterById), new { id = dto.Id }, dto);
+            return CreatedAtAction(nameof(GetTheaterById), new { id = theater.Id }, createdTheater);
         }
 
         [HttpPut]
         [Route("{id}")]
-        public ActionResult<TheaterDto> UpdateTheater(int id, TheaterDto dto)
+        [Authorize]
+        public async Task<ActionResult<TheaterDto>> UpdateTheater(int id, TheaterDto dto)
         {
             if (IsInvalid(dto))
             {
                 return BadRequest();
             }
 
-            var theater = theaters.FirstOrDefault(x => x.Id == id);
+            var theater = await theaters.Include(t => t.Manager).FirstOrDefaultAsync(x => x.Id == id);
             if (theater == null)
             {
                 return NotFound();
+            }
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!User.IsInRole("Admin") && (theater.Manager == null || theater.Manager.Id.ToString() != userId))
+            {
+                return Forbid();
             }
 
             theater.Name = dto.Name;
             theater.Address = dto.Address;
             theater.SeatCount = dto.SeatCount;
 
-            dataContext.SaveChanges();
+            if (dto.ManagerId.HasValue)
+            {
+                var manager = await dataContext.Users.FindAsync(dto.ManagerId.Value);
+                if (manager == null)
+                {
+                    return BadRequest(new { message = "Invalid ManagerId." });
+                }
+                theater.Manager = manager;
+            }
+            else
+            {
+                theater.Manager = null;
+            }
 
-            dto.Id = theater.Id;
+            await dataContext.SaveChangesAsync();
 
-            return Ok(dto);
+            var updatedDto = new TheaterDto
+            {
+                Id = theater.Id,
+                Name = theater.Name,
+                Address = theater.Address,
+                SeatCount = theater.SeatCount,
+                ManagerId = theater.ManagerId
+            };
+
+            return Ok(updatedDto);
         }
 
         [HttpDelete]
         [Route("{id}")]
+        [Authorize(Roles = "Admin")]
         public ActionResult DeleteTheater(int id)
         {
+            if (!User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
             var theater = theaters.FirstOrDefault(x => x.Id == id);
             if (theater == null)
             {
-                return NotFound();
+                return NotFound(new { message = "No such item exists." });
             }
 
             theaters.Remove(theater);
-
             dataContext.SaveChanges();
 
-            return Ok();
+            return Ok(new { message = "Theater successfully deleted.", id = id });
         }
 
         private static bool IsInvalid(TheaterDto dto)
@@ -120,6 +170,7 @@ namespace Selu383.SP25.P02.Api.Controllers
                     Name = x.Name,
                     Address = x.Address,
                     SeatCount = x.SeatCount,
+                    ManagerId = x.ManagerId,
                 });
         }
     }
