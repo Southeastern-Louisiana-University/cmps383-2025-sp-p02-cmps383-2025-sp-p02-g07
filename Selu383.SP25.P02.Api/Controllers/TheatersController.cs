@@ -49,7 +49,7 @@ namespace Selu383.SP25.P02.Api.Controllers
         {
             if (IsInvalid(dto))
             {
-                return BadRequest();
+                return BadRequest(new { message = "Invalid theater data." });
             }
 
             if (!User.IsInRole("Admin"))
@@ -57,12 +57,9 @@ namespace Selu383.SP25.P02.Api.Controllers
                 return Forbid(); // Returns a 403 Forbidden
             }
 
-
-            var manager = await dataContext.Users.FindAsync(dto.ManagerId.GetValueOrDefault());
-            if (manager == null)
-            {
-                return NotFound();
-            }
+            var manager = dto.ManagerId.HasValue
+                ? await dataContext.Users.FindAsync(dto.ManagerId.Value)
+                : null;
 
             var theater = new Theater
             {
@@ -70,16 +67,23 @@ namespace Selu383.SP25.P02.Api.Controllers
                 Address = dto.Address,
                 SeatCount = dto.SeatCount,
                 Manager = manager
-                
             };
-            theaters.Add(theater);
 
+            theaters.Add(theater);
             await dataContext.SaveChangesAsync();
 
-            dto.Id = theater.Id;
+            var createdTheater = new TheaterDto
+            {
+                Id = theater.Id,
+                Name = theater.Name,
+                Address = theater.Address,
+                SeatCount = theater.SeatCount,
+                ManagerId = dto.ManagerId
+            };
 
-            return CreatedAtAction(nameof(GetTheaterById), new { id = dto.Id }, dto);
+            return CreatedAtAction(nameof(GetTheaterById), new { id = theater.Id }, createdTheater);
         }
+
 
         // Only "Admin" can update a theater
         [HttpPut]
@@ -119,7 +123,6 @@ namespace Selu383.SP25.P02.Api.Controllers
         [Authorize(Roles = "Admin")]
         public ActionResult DeleteTheater(int id)
         {
-
             if (!User.IsInRole("Admin"))
             {
                 return Forbid(); // Returns a 403 Forbidden
@@ -128,15 +131,17 @@ namespace Selu383.SP25.P02.Api.Controllers
             var theater = theaters.FirstOrDefault(x => x.Id == id);
             if (theater == null)
             {
-                return NotFound();
+                return NotFound(new { message = "No such item exists." }); // NoSuchItem case
             }
 
             theaters.Remove(theater);
-
             dataContext.SaveChanges();
 
-            return Ok();
+            return Ok(new { message = "Theater successfully deleted.", id = id }); // ValidItem case
         }
+
+
+
 
         private static bool IsInvalid(TheaterDto dto)
         {
