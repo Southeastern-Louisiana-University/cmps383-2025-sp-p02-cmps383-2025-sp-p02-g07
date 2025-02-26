@@ -21,7 +21,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.2.0" />
   </ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\Selu383.SP25.P02.Web\Selu383.SP25.P02.Web.esproj" />
+		<ProjectReference Include="..\Selu383.Sp25.Web\Selu383.SP25.P02.Web.esproj" />
 	</ItemGroup>
 
 </Project>
