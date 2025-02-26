@@ -20,5 +20,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.2.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.2.0" />
   </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Selu383.SP25.P02.Web\Selu383.SP25.P02.Web.esproj" />
+	</ItemGroup>
 
 </Project>
