@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Builder;
 using Selu383.SP25.P02.Api.Data;
 using Selu383.SP25.P02.Api.Features.Users;
 using Selu383.SP25.P02.Api.Features.Roles;
-using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.Builder;
 
 namespace Selu383.SP25.P02.Api
 {
@@ -25,13 +24,13 @@ namespace Selu383.SP25.P02.Api
             {
                 options.User.RequireUniqueEmail = false;
             })
-             .AddEntityFrameworkStores<DataContext>()
-             .AddDefaultTokenProviders();
+            .AddEntityFrameworkStores<DataContext>()
+            .AddDefaultTokenProviders();
+
             builder.Services.AddScoped<RoleManager<Role>>();
 
+            // Add Authentication & Authorization
             builder.Services.AddAuthorization();
-
-            // Configure Cookie Authentication
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.Cookie.HttpOnly = true;
@@ -57,76 +56,46 @@ namespace Selu383.SP25.P02.Api
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie();
 
-            builder.Services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
-            });
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowAll",
-                    policy =>
-                    {
-                        policy.AllowAnyOrigin()  // Or specify specific origins with .WithOrigins("http://localhost:5173")
-                              .AllowAnyMethod()
-                              .AllowAnyHeader();
-                    });
-            });
-
-
-
-            builder.Services.AddAuthorization();
-
             builder.Services.AddControllers();
-            builder.Services.AddOpenApi();
 
             var app = builder.Build();
 
             using (var scope = app.Services.CreateScope())
             {
-                await SeedTheaters.Initialize(scope.ServiceProvider);
+                var services = scope.ServiceProvider;
+                var db = services.GetRequiredService<DataContext>();
+
+                await db.Database.MigrateAsync();  
+
+                await SeedTheaters.Initialize(scope.ServiceProvider); 
             }
+
+            // Middleware pipeline
+            app.UseRouting();
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+          
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+
+            app.UseStaticFiles();
 
             if (app.Environment.IsDevelopment())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
+                app.UseSpa(x =>
                 {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
-                    c.RoutePrefix = string.Empty;  // Makes Swagger UI available at the root
+                    x.UseProxyToSpaDevelopmentServer("http://localhost:5173");
                 });
-                app.MapOpenApi();
-
-
-
-                app.UseHttpsRedirection();
-                app.UseAuthentication();
-                app.UseRouting();
-
-                app.UseCors("AllowAll");
-
-                app.UseAuthorization();  // <-- Authorization should come after Authentication
-
-                app.UseEndpoints(endpoints =>
-                {
-                    endpoints.MapControllers();
-                });
-
-                app.UseStaticFiles();
-                if (app.Environment.IsDevelopment())
-                {
-                    app.UseSpa(x =>
-                    {
-                        x.UseProxyToSpaDevelopmentServer("http://localhost:5173");
-                    });
-                }
-                else
-                {
-                    app.MapFallbackToFile("/index.html");
-                }
-                app.MapControllers();
-
-                app.Run();
             }
+            else
+            {
+                app.MapFallbackToFile("/index.html");
+            }
+
+            app.Run();
         }
     }
 }
